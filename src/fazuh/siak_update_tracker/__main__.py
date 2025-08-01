@@ -94,6 +94,7 @@ class Main:
                     return
         except requests.exceptions.RequestException as e:
             print(f"Error while tracking updates: {e}")
+            return
 
         # 2. Parse response
         soup = BeautifulSoup(resp.text, "html.parser")

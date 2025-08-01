@@ -12,9 +12,30 @@ import requests
 
 class Main:
     def __init__(self):
-        # Load environment variables
-        # The priority is .env file > environment variables
-        # See .env-example for the required variables
+        self.login_url = "https://academic.ui.ac.id/main/Authentication/"
+        self.change_role_url = "https://academic.ui.ac.id/main/Authentication/ChangeRole"
+        self.tracked_page = "https://academic.ui.ac.id/main/Schedule/Index?period=2025-1&search="
+
+        self.cache_file = Path("latest_courses.txt")
+        self.prev_content = self.cache_file.read_text() if self.cache_file.exists() else ""
+
+        self.session = requests.Session()
+
+    def main(self):
+        self._load_env()
+        self._authenticate()
+        self._change_role()
+        while True:
+            self._run()
+            time.sleep(self.interval)
+            self._load_env()  # reload environment variables for .env modification on-the-fly
+
+    def _load_env(self):
+        """Load environment variables
+
+        The priority is .env file > environment variables
+        See .env-example for the required variables
+        """
         load_dotenv()
         self.username = os.getenv("USERNAME")
         self.password = os.getenv("PASSWORD")
@@ -30,21 +51,6 @@ class Main:
             return
 
         self.webhook_url = webhook_url
-        self.login_url = "https://academic.ui.ac.id/main/Authentication/"
-        self.change_role_url = "https://academic.ui.ac.id/main/Authentication/ChangeRole"
-        self.tracked_page = "https://academic.ui.ac.id/main/Schedule/Index?period=2025-1&search="
-
-        self.cache_file = Path("latest_courses.txt")
-        self.prev_content = self.cache_file.read_text() if self.cache_file.exists() else ""
-
-        self.session = requests.Session()
-
-    def main(self):
-        self._authenticate()
-        self._change_role()
-        while True:
-            self._run()
-            time.sleep(self.interval)
 
     def _authenticate(self) -> bool:
         try:

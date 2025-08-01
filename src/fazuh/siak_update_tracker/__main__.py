@@ -159,7 +159,7 @@ class Main:
 
         data = {
             "content": message,
-            "username": "UI Schedule Tracker",
+            "username": "siak-update-tracker",
             "avatar_url": "https://academic.ui.ac.id/favicon.ico",
         }
 

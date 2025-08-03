@@ -17,7 +17,14 @@ class Main:
         self.change_role_url = "https://academic.ui.ac.id/main/Authentication/ChangeRole"
         self.tracked_page = "https://academic.ui.ac.id/main/Schedule/Index?period=2025-1&search="
 
-        self.cache_file = Path("latest_courses.txt")
+        data_folder = Path("data")
+        if not data_folder.exists():
+            data_folder.mkdir(parents=True)
+
+        self.cache_file = data_folder.joinpath("latest_courses.txt")
+        if not self.cache_file.exists():
+            self.cache_file.touch()
+
         self.prev_content = self.cache_file.read_text() if self.cache_file.exists() else ""
 
         self.session = requests.Session()
@@ -159,7 +166,7 @@ class Main:
 
         data = {
             "content": message,
-            "username": "siak-update-tracker",
+            "username": "warlock",
             "avatar_url": "https://academic.ui.ac.id/favicon.ico",
         }
 

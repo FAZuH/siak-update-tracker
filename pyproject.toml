@@ -1,5 +1,5 @@
 [project]
-name = "siak-update-tracker"
+name = "warlock"
 
 version = "0.1.0"
 
@@ -13,16 +13,16 @@ dependencies = [
 ]
 
 [project.scripts]
-siak-update-tracker = "fazuh.siak_update_tracker.__main__:main"
+warlock = "fazuh.warlock.__main__:main"
 
 [project.urls]
-Source = "https://github.com/FAZuH/siak-update-tracker"
-Issues = "https://github.com/FAZuH/siak-update-tracker/issues"
-Documentation = "https://github.com/FAZuH/siak-update-tracker#readme"
+Source = "https://github.com/FAZuH/warlock"
+Issues = "https://github.com/FAZuH/warlock/issues"
+Documentation = "https://github.com/FAZuH/warlock#readme"
 
 [tool.setuptools.packages.find]
 where = ["src"]
-include = [ "fazuh.siak-update-tracker*" ]
+include = [ "fazuh.warlock*" ]
 
 # Common
 [dependency-groups]

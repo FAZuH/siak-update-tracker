@@ -11,6 +11,7 @@ import requests
 
 
 class Main:
+
     def __init__(self):
         self.login_url = "https://academic.ui.ac.id/main/Authentication/"
         self.change_role_url = "https://academic.ui.ac.id/main/Authentication/ChangeRole"
@@ -22,15 +23,14 @@ class Main:
         self.session = requests.Session()
 
     def main(self):
-        self._load_env()
-        self._authenticate()
-        self._change_role()
         while True:
-            self._run()
+            self.load_env()
+            if self.authenticate():
+                self.run()
+            print(f"Waiting for the next check in {self.interval} seconds...")
             time.sleep(self.interval)
-            self._load_env()  # reload environment variables for .env modification on-the-fly
 
-    def _load_env(self):
+    def load_env(self):
         """Load environment variables
 
         The priority is .env file > environment variables
@@ -52,7 +52,7 @@ class Main:
 
         self.webhook_url = webhook_url
 
-    def _authenticate(self) -> bool:
+    def authenticate(self) -> bool:
         try:
             resp = self.session.post(self.login_url, data={"u": self.username, "p": self.password})
             resp.raise_for_status()
@@ -61,14 +61,19 @@ class Main:
             return False
 
         time.sleep(1)
-        if self._is_logged_in() is False:
+        if self.is_logged_in() is False:
             print("Error: Authentication failed. Please check your credentials.")
+            return False
+
+        time.sleep(1)
+        if self.change_role() is False:
+            print("Error: Authentication succeeded but role change failed. Is the website down?")
             return False
 
         print("Authentication successful.")
         return True
 
-    def _change_role(self) -> bool:
+    def change_role(self) -> bool:
         try:
             resp = self.session.get(self.change_role_url)
             resp.raise_for_status()
@@ -83,17 +88,11 @@ class Main:
             print("Error: Role change failed.")
             return False
 
-    def _run(self):
+    def run(self):
         # 1. GET tracked page
-        try:
-            resp = self.session.get(self.tracked_page)
-            if self._is_logged_in_url(resp) is False:
-                print("Session expired or not logged in. Re-authenticating...")
-                if not self._authenticate():
-                    print("Re-authentication failed. Exiting.")
-                    return
-        except requests.exceptions.RequestException as e:
-            print(f"Error while tracking updates: {e}")
+        resp = self.session.get(self.tracked_page)
+        if self._is_logged_in_url(resp) is False:
+            print("Session expired or not logged in.")
             return
 
         # 2. Parse response
@@ -137,7 +136,7 @@ class Main:
         self.prev_content = curr
         self.cache_file.write_text(curr)
 
-    def _is_logged_in(self) -> bool:
+    def is_logged_in(self) -> bool:
         try:
             response = self.session.get(self.tracked_page)
             return response.status_code == 200 and self._is_logged_in_url(response)

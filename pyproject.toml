@@ -22,7 +22,9 @@ Documentation = "https://github.com/FAZuH/warlock#readme"
 
 [tool.setuptools.packages.find]
 where = ["src"]
-include = [ "fazuh.warlock*" ]
+include = [ 
+    "fazuh.warlock",
+]
 
 # Common
 [dependency-groups]

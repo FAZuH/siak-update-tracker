@@ -34,9 +34,7 @@ class WarBot:
     def run(self):
         self.auth.page.goto(Path.COURSE_PLAN_EDIT)
         if self.auth.page.url != Path.COURSE_PLAN_EDIT:
-            logger.error(
-                f"Error: Expected {Path.COURSE_PLAN_EDIT}. Found {self.auth.page.url} instead."
-            )
+            logger.error(f"Expected {Path.COURSE_PLAN_EDIT}. Found {self.auth.page.url} instead.")
             return
 
         rows = self.auth.page.query_selector_all("tr")

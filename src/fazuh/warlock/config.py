@@ -19,17 +19,17 @@ class Config:
         username = os.getenv("USERNAME")
         password = os.getenv("PASSWORD")
         if username is None or password is None:
-            logger.error("Error: USERNAME and PASSWORD environment variables are not set.")
+            logger.error("USERNAME and PASSWORD environment variables are not set.")
             return
 
         webhook_url = os.getenv("WEBHOOK_URL")
         if webhook_url is None or not self._is_webhook_valid(webhook_url):
-            logger.error("Error: invalid WEBHOOK_URL.")
+            logger.error("Invalid WEBHOOK_URL.")
             return
 
         admin_webhook_url = os.getenv("ADMIN_WEBHOOK_URL")
         if admin_webhook_url and not self._is_webhook_valid(admin_webhook_url):
-            logger.error("Error: invalid ADMIN_WEBHOOK_URL.")
+            logger.error("Invalid ADMIN_WEBHOOK_URL.")
             return
 
         self.username = username

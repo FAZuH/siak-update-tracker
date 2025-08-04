@@ -49,9 +49,7 @@ class ScheculeUpdateTracker:
         # 1. GET tracked page
         self.auth.page.goto(self.tracked_page)
         if self.auth.page.url != self.tracked_page:
-            logger.error(
-                f"Error: Expected {self.tracked_page}. Found {self.auth.page.url} instead."
-            )
+            logger.error(f"Expected {self.tracked_page}. Found {self.auth.page.url} instead.")
             return
 
         # 2. Parse response

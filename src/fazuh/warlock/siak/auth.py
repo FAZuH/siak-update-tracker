@@ -1,3 +1,5 @@
+import base64
+
 from loguru import logger
 from playwright.sync_api import Browser
 from playwright.sync_api import Page
@@ -20,88 +22,113 @@ class Auth:
     def authenticate(self) -> bool:
         try:
             self.page.goto(Path.AUTHENTICATION)
+            self.page.wait_for_load_state("networkidle")
+
+            # Handle pre-login CAPTCHA page
+            if self.handle_captcha():
+                return self.authenticate()
+
             self.page.wait_for_selector("input[name=u]", state="visible")
+            # Proceed with standard login
             self.page.fill("input[name=u]", self.username)
             self.page.fill("input[name=p]", self.password)
             self.page.click("input[type=submit]")
             self.page.wait_for_load_state("networkidle")
-        except Exception as e:
-            logger.error(f"Error during authentication: {e}")
-            # Check for CAPTCHA
-            if "What code is in the image?" in self.page.content():
-                logger.warning(
-                    "JavaScript CAPTCHA detected. Please solve it in the browser window."
-                )
-                if self.config.admin_webhook_url:
-                    self._notify_admin_for_captcha()
-                logger.info("The script will resume automatically after you log in.")
-                try:
-                    # Wait for successful login, which should set the session cookie.
-                    self.page.wait_for_function(
-                        "() => document.cookie.includes('siakng_cc')", timeout=300_000
-                    )  # 5 minutes timeout
-                except Exception:
-                    logger.error("CAPTCHA was not solved in time. Authentication failed.")
-                    return False
-            else:
-                logger.error(f"An unexpected error occurred during authentication: {e}")
-                return False
 
-        if not self.is_initial_logged_in():
-            logger.error("Error: Authentication failed. Please check your credentials.")
+            if self.handle_captcha():
+                return self.authenticate()
+
+        except Exception as e:
+            logger.error(f"An unexpected error occurred during authentication: {e}")
             return False
 
-        if not self.change_role():
+        if self.is_rejected_page():
+            logger.error("Authentication failed. The requested URL was rejected.")
+            return False
+
+        if not self.is_initial_logged_in():
             logger.error(
-                "Error: Authentication succeeded but role change failed. Is the website down?"
+                "Initial authentication failed. Please check your credentials or CAPTCHA solution."
             )
             return False
 
         logger.info("Authentication successful.")
         return True
 
-    def _notify_admin_for_captcha(self):
+    def handle_captcha(self) -> bool:
+        """Extracts CAPTCHA, notifies admin, and gets solution from CLI."""
+        if not self.is_captcha_page():
+            return False
+
+        try:
+            image_element = self.page.query_selector('img[src*="data:image/png;base64,"]')
+            if not image_element:
+                raise ValueError("CAPTCHA image element not found.")
+
+            image_src = image_element.get_attribute("src")
+            if not image_src or "base64," not in image_src:
+                raise ValueError("Could not extract CAPTCHA image source.")
+
+            base64_data = image_src.split(",", 1)[1]
+            image_data = base64.b64decode(base64_data)
+
+            if self.config.admin_webhook_url:
+                self._notify_admin_for_captcha(image_data)
+
+            captcha_solution = input("Please enter the CAPTCHA code from the image: ")
+
+            self.page.fill("input[name=answer]", captcha_solution)
+            self.page.click("button#jar")
+
+            self.page.wait_for_load_state("networkidle")
+
+        except Exception as e:
+            logger.error(f"Failed to handle CAPTCHA: {e}")
+            raise
+
+        return True
+
+    def _notify_admin_for_captcha(self, image_data: bytes):
+        """Sends the CAPTCHA image to the admin webhook."""
         if not self.config.admin_webhook_url:
             return
 
-        message = "JavaScript CAPTCHA detected. Please solve it in the browser window."
+        message = "CAPTCHA detected. Please provide the solution."
         if self.config.admin_user_id:
             message = f"<@{self.config.admin_user_id}> {message}"
 
         try:
-            requests.post(
-                self.config.admin_webhook_url,
-                json={"content": message},
-                timeout=5,
+            files = {"file": ("captcha.png", image_data, "image/png")}
+            data = {"content": message}
+            response = requests.post(
+                self.config.admin_webhook_url, data=data, files=files, timeout=10
             )
-            logger.info("Admin notified about CAPTCHA.")
+            response.raise_for_status()
+            logger.info("Admin notified about CAPTCHA and image sent.")
         except requests.RequestException as e:
-            logger.error(f"Failed to notify admin: {e}")
-
-    def change_role(self) -> bool:
-        try:
-            self.page.goto(Path.CHANGE_ROLE)
-            self.page.wait_for_url(Path.WELCOME)
-        except Exception as e:
-            logger.error(f"Error changing role: {e}")
-            return False
-
-        if self.page.url == Path.WELCOME:
-            logger.info("Role changed successfully.")
-            return True
-        else:
-            logger.error("Error: Role change failed.")
-            return False
+            logger.error(f"Failed to notify admin via webhook: {e}")
 
     def is_initial_logged_in(self) -> bool:
         """Check if the user is logged in by looking for the session cookie."""
         return "siakng_cc" in [cookie["name"] for cookie in self.page.context.cookies()]
 
     def is_logged_in(self) -> bool:
-        """Check if the user is logged in."""
+        """Check if the user is logged in by visiting a known page."""
         self.page.goto(Path.WELCOME)
-        # If the user is redirected to the authentication page, they are not logged in.
-        return self.page.url != Path.AUTHENTICATION
+        # If we are on the CAPTCHA or Login page, we are not logged in.
+        if self.is_captcha_page():
+            return False
+        if self.page.url == Path.AUTHENTICATION:
+            return False
+        return True
+
+    def is_captcha_page(self) -> bool:
+        """Check if the current page is a CAPTCHA page."""
+        return "This question is for testing whether you are a human visitor" in self.page.content()
+
+    def is_rejected_page(self) -> bool:
+        """Check if the current page is a rejected URL page."""
+        return "The requested URL was rejected" in self.page.content()
 
     def close(self):
         self.browser.close()

@@ -2,7 +2,9 @@ from loguru import logger
 from playwright.sync_api import Browser
 from playwright.sync_api import Page
 from playwright.sync_api import sync_playwright
+import requests
 
+from fazuh.warlock.config import Config
 from fazuh.warlock.siak.path import Path
 
 
@@ -13,6 +15,7 @@ class Auth:
         self.playwright = sync_playwright().start()
         self.browser: Browser = self.playwright.firefox.launch(headless=False)
         self.page: Page = self.browser.new_page()
+        self.config = Config()
 
     def authenticate(self) -> bool:
         try:
@@ -29,6 +32,8 @@ class Auth:
                 logger.warning(
                     "JavaScript CAPTCHA detected. Please solve it in the browser window."
                 )
+                if self.config.admin_webhook_url:
+                    self._notify_admin_for_captcha()
                 logger.info("The script will resume automatically after you log in.")
                 try:
                     # Wait for successful login, which should set the session cookie.
@@ -54,6 +59,24 @@ class Auth:
 
         logger.info("Authentication successful.")
         return True
+
+    def _notify_admin_for_captcha(self):
+        if not self.config.admin_webhook_url:
+            return
+
+        message = "JavaScript CAPTCHA detected. Please solve it in the browser window."
+        if self.config.admin_user_id:
+            message = f"<@{self.config.admin_user_id}> {message}"
+
+        try:
+            requests.post(
+                self.config.admin_webhook_url,
+                json={"content": message},
+                timeout=5,
+            )
+            logger.info("Admin notified about CAPTCHA.")
+        except requests.RequestException as e:
+            logger.error(f"Failed to notify admin: {e}")
 
     def change_role(self) -> bool:
         try:

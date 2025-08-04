@@ -7,10 +7,12 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "requests",
+    "playwright",
+    "httpx",
     "beautifulsoup4",
     "python-dotenv",
     "loguru>=0.7.3",
+    "requests>=2.32.4",
 ]
 
 [project.scripts]

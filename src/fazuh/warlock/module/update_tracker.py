@@ -27,25 +27,30 @@ class UpdateTracker:
 
         self.prev_content = self.cache_file.read_text() if self.cache_file.exists() else ""
 
-        self.session = requests.Session()
-        self.auth = Auth(self.session, self.conf.username, self.conf.password)
+        self.auth = Auth(self.conf.username, self.conf.password)
 
     def start(self):
         while True:
-            if self.auth.authenticate():
-                self.run()
-            logger.info(f"Waiting for the next check in {self.conf.interval} seconds...")
-            time.sleep(self.conf.interval)
+            try:
+                if self.auth.authenticate():
+                    self.run()
+            except Exception as e:
+                logger.error(f"An error occurred in UpdateTracker: {e}")
+            finally:
+                logger.info(f"Waiting for the next check in {self.conf.interval} seconds...")
+                time.sleep(self.conf.interval)
 
     def run(self):
         # 1. GET tracked page
-        resp = self.session.get(self.tracked_page)
-        if resp.url != self.tracked_page:
-            logger.error(f"Error: Expected {self.tracked_page}. Found {resp.url} instead.")
+        self.auth.page.goto(self.tracked_page)
+        if self.auth.page.url != self.tracked_page:
+            logger.error(
+                f"Error: Expected {self.tracked_page}. Found {self.auth.page.url} instead."
+            )
             return
 
         # 2. Parse response
-        soup = BeautifulSoup(resp.text, "html.parser")
+        soup = BeautifulSoup(self.auth.page.content(), "html.parser")
 
         courses: list[str] = []
 
@@ -76,7 +81,7 @@ class UpdateTracker:
 
             # 2c. merge course header + its classes
             full_entry = (
-                f"{course_line}: " + " | ".join(classes_info) if classes_info else course_line
+                f"{course_line}: | " + " | ".join(classes_info) if classes_info else course_line
             )
             courses.append(full_entry)
 

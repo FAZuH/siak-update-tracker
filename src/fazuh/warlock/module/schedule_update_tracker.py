@@ -34,7 +34,9 @@ class ScheculeUpdateTracker:
                 self.tracked_page = self.conf.tracked_page
 
                 if not self.auth.is_logged_in():
-                    self.auth.authenticate()
+                    if not self.auth.authenticate():
+                        logger.error("Authentication failed. Is the server down?")
+                        continue
 
                 self.run()
             except Exception as e:

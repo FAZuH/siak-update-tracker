@@ -11,7 +11,6 @@ from fazuh.warlock.siak.path import Path
 class WarBot:
     def __init__(self):
         self.conf = Config()
-        self.auth = Auth(self.conf.username, self.conf.password)
 
         if not os.path.exists("courses.json"):
             logger.error("courses.json file not found. Please create it with the required courses.")
@@ -21,6 +20,7 @@ class WarBot:
             self.courses = json.load(f)
 
     def start(self):
+        self.auth = Auth(self.conf.username, self.conf.password)
         try:
             if not self.auth.is_logged_in():
                 self.auth.authenticate()
@@ -63,7 +63,7 @@ class WarBot:
                 break
 
         for key, val in self.courses.items():
-            logger.warning(f"Course not found: {key} with prof: {val}")
+            logger.error(f"Course not found: {key} with prof: {val}")
 
         # Click the save button
         self.auth.page.click("input[type=submit][value='Simpan IRS']")

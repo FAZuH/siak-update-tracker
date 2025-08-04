@@ -25,16 +25,18 @@ class UpdateTracker:
             self.cache_file.touch()
 
         self.prev_content = self.cache_file.read_text() if self.cache_file.exists() else ""
-
         self.auth = Auth(self.conf.username, self.conf.password)
 
     def start(self):
         while True:
             try:
-                if self.auth.authenticate():
-                    self.run()
                 self.conf.load()  # Reload config to allow dynamic changes to .env
                 self.tracked_page = self.conf.tracked_page
+
+                if not self.auth.is_logged_in():
+                    self.auth.authenticate()
+
+                self.run()
             except Exception as e:
                 logger.error(f"An error occurred in UpdateTracker: {e}")
             finally:

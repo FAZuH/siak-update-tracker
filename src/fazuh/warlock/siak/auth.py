@@ -9,7 +9,7 @@ from fazuh.warlock.siak.path import Path
 
 
 class Auth:
-    def __init__(self, username, password):
+    def __init__(self, username: str, password: str):
         self.username = username
         self.password = password
         self.playwright = sync_playwright().start()
@@ -47,7 +47,7 @@ class Auth:
                 logger.error(f"An unexpected error occurred during authentication: {e}")
                 return False
 
-        if not self.is_logged_in():
+        if not self.is_initial_logged_in():
             logger.error("Error: Authentication failed. Please check your credentials.")
             return False
 
@@ -93,8 +93,15 @@ class Auth:
             logger.error("Error: Role change failed.")
             return False
 
-    def is_logged_in(self) -> bool:
+    def is_initial_logged_in(self) -> bool:
+        """Check if the user is logged in by looking for the session cookie."""
         return "siakng_cc" in [cookie["name"] for cookie in self.page.context.cookies()]
+
+    def is_logged_in(self) -> bool:
+        """Check if the user is logged in."""
+        self.page.goto(Path.WELCOME)
+        # If the user is redirected to the authentication page, they are not logged in.
+        return self.page.url != Path.AUTHENTICATION
 
     def close(self):
         self.browser.close()

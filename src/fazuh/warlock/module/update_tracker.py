@@ -118,21 +118,23 @@ class UpdateTracker:
     @staticmethod
     def _to_webhook(webhook_url: str, diff: str):
         message = "**Jadwal SIAK UI Berubah!**"
-
-        # Create a file-like object from the diff string
-        diff_file = io.BytesIO(diff.encode("utf-8"))
-
-        # Generate filename with timestamp
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"siak_schedule_diff_{timestamp}.txt"
-
         data = {
-            "content": message,
             "username": "warlock",
             "avatar_url": "https://academic.ui.ac.id/favicon.ico",
         }
+        files = None
+        diff_file = None
 
-        files = {"file": (filename, diff_file, "text/plain")}
+        # Discord has a 2000 character limit for messages (see https://discord.com/developers/docs/resources/webhook#execute-webhook-jsonform-params)
+        # Send text if diff is under 1900 characters, otherwise send as file
+        if len(diff) < 1900:
+            data["content"] = f"{message}\n```diff\n{diff}\n```"
+        else:
+            data["content"] = message
+            diff_file = io.BytesIO(diff.encode("utf-8"))
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"siak_schedule_diff_{timestamp}.txt"
+            files = {"file": (filename, diff_file, "text/plain")}
 
         try:
             resp = requests.post(webhook_url, data=data, files=files)
@@ -141,7 +143,8 @@ class UpdateTracker:
         except requests.exceptions.RequestException as e:
             logger.error(f"Error sending content to webhook: {e}")
         finally:
-            diff_file.close()
+            if diff_file:
+                diff_file.close()
 
     @staticmethod
     def _get_diff(old: str, new: str) -> str:

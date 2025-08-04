@@ -3,3 +3,4 @@ class Path:
     AUTHENTICATION = f"{HOSTNAME}main/Authentication/"
     CHANGE_ROLE = f"{HOSTNAME}main/Authentication/ChangeRole/"
     WELCOME = f"{HOSTNAME}main/Welcome/"
+    COURSE_PLAN_EDIT = f"{HOSTNAME}main/CoursePlan/CoursePlanEdit"

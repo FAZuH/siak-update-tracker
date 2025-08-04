@@ -168,4 +168,5 @@ sandbox.py
 .jukit
 .vscode
 logs
-latest_courses.txt
+/data/latest_courses.txt
+/courses.json

@@ -12,7 +12,7 @@ from fazuh.warlock.config import Config
 from fazuh.warlock.siak.auth import Auth
 
 
-class UpdateTracker:
+class ScheculeUpdateTracker:
     def __init__(self):
         self.conf = Config()
 

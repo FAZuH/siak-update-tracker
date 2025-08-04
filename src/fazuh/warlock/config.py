@@ -32,14 +32,13 @@ class Config:
             logger.error("Error: invalid ADMIN_WEBHOOK_URL.")
             return
 
-        admin_user_id = os.getenv("ADMIN_USER_ID")
-
         self.username = username
         self.password = password
-        self.interval = int(os.getenv("INTERVAL", 60))
         self.webhook_url = webhook_url
         self.admin_webhook_url = admin_webhook_url
-        self.admin_user_id = admin_user_id
+        self.interval = int(os.getenv("INTERVAL", 60))
+        self.admin_user_id = os.getenv("ADMIN_USER_ID")
+        self.tracked_page = os.getenv("TRACKED_PAGE", "")
 
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:

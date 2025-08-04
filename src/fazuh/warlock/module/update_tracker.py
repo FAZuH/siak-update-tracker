@@ -15,7 +15,6 @@ from fazuh.warlock.siak.auth import Auth
 class UpdateTracker:
     def __init__(self):
         self.conf = Config()
-        self.tracked_page = "https://academic.ui.ac.id/main/Schedule/Index?period=2025-1&search="
 
         data_folder = Path("data")
         if not data_folder.exists():
@@ -34,6 +33,8 @@ class UpdateTracker:
             try:
                 if self.auth.authenticate():
                     self.run()
+                self.conf.load()  # Reload config to allow dynamic changes to .env
+                self.tracked_page = self.conf.tracked_page
             except Exception as e:
                 logger.error(f"An error occurred in UpdateTracker: {e}")
             finally:

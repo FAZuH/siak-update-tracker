@@ -113,16 +113,15 @@ class ScheculeUpdateTracker:
         # 4. Create diff and send to webhook
         diff = "\n".join(changes)
         logger.debug(diff)
-        self._to_webhook(self.conf.webhook_url, diff)
+        self._send_diff_to_webhook(self.conf.webhook_url, diff)
 
         self.prev_content = curr
         self.cache_file.write_text(curr)
 
-    @staticmethod
-    def _to_webhook(webhook_url: str, diff: str):
+    def _send_diff_to_webhook(self, webhook_url: str, diff: str):
         message = "**Jadwal SIAK UI Berubah!**"
         data = {
-            "username": "warlock",
+            "username": "Warlock Tracker",
             "avatar_url": "https://academic.ui.ac.id/favicon.ico",
         }
         files = None
@@ -149,8 +148,7 @@ class ScheculeUpdateTracker:
             if diff_file:
                 diff_file.close()
 
-    @staticmethod
-    def _get_diff(old: str, new: str) -> str:
+    def _get_diff(self, old: str, new: str) -> str:
         diff = difflib.unified_diff(
             old.splitlines(keepends=True),
             new.splitlines(keepends=True),

@@ -99,7 +99,10 @@ class Auth:
 
         try:
             files = {"file": ("captcha.png", image_data, "image/png")}
-            data = {"content": message}
+            data = {
+                "username": "Warlock Auth",
+                "content": message
+            }
             response = requests.post(
                 self.config.admin_webhook_url, data=data, files=files, timeout=10
             )

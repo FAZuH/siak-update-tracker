@@ -5,6 +5,7 @@ from pathlib import Path
 import time
 
 from bs4 import BeautifulSoup
+from loguru import logger
 import requests
 
 from fazuh.warlock.config import Config
@@ -33,14 +34,14 @@ class UpdateTracker:
         while True:
             if self.auth.authenticate():
                 self.run()
-            print(f"Waiting for the next check in {self.conf.interval} seconds...")
+            logger.info(f"Waiting for the next check in {self.conf.interval} seconds...")
             time.sleep(self.conf.interval)
 
     def run(self):
         # 1. GET tracked page
         resp = self.session.get(self.tracked_page)
         if resp.url != self.tracked_page:
-            print(f"Error: Expected {self.tracked_page}. Found {resp.url} instead.")
+            logger.error(f"Error: Expected {self.tracked_page}. Found {resp.url} instead.")
             return
 
         # 2. Parse response
@@ -49,41 +50,43 @@ class UpdateTracker:
         courses: list[str] = []
 
         # every course starts with <th class="sub ...">
-        for hdr in soup.find_all('th', class_=['sub', 'border2', 'pad2']):
+        for hdr in soup.find_all("th", class_=["sub", "border2", "pad2"]):
             if hdr.parent is None:
                 continue
             # 2a. course header
             course_line = hdr.get_text(strip=True)
-            course_line = course_line.replace('<strong>', '').replace('</strong>', '')
+            course_line = course_line.replace("<strong>", "").replace("</strong>", "")
 
             # 2b. collect all following <tr> rows that belong to this course
             classes_info = []
-            for sibling in hdr.parent.find_next_siblings('tr'):
+            for sibling in hdr.parent.find_next_siblings("tr"):
                 # stop if we hit the next course header
-                if sibling.find('th', class_=['sub', 'border2', 'pad2']):  # type: ignore
+                if sibling.find("th", class_=["sub", "border2", "pad2"]):  # type: ignore
                     break
 
                 # collect the text of every <td> in this <tr>
-                cells = [td.get_text(strip=True) for td in sibling.find_all('td')]
+                cells = [td.get_text(strip=True) for td in sibling.find_all("td")]
                 if not cells:
                     continue
 
                 # build one line per class, e.g.
                 # "Kelas Teori Matriks (A); Indonesia; 25/08/2025 - 19/12/2025; Rabu, 08.00-09.40; D.109; - Dra. ..."
-                class_line = '; '.join(cells[1:])      # skip the first cell (index number)
+                class_line = "; ".join(cells[1:])  # skip the first cell (index number)
                 classes_info.append(class_line)
 
             # 2c. merge course header + its classes
-            full_entry = f"{course_line}: " + " | ".join(classes_info) if classes_info else course_line
+            full_entry = (
+                f"{course_line}: " + " | ".join(classes_info) if classes_info else course_line
+            )
             courses.append(full_entry)
 
         curr = "\n".join(courses)
 
         # 3. Compare with previous content
         if self.prev_content == curr:
-            print("No updates detected.")
+            logger.info("No updates detected.")
             return
-        print("Update detected!")
+        logger.info("Update detected!")
 
         # compare using set
         old_courses = set(self.prev_content.splitlines()) if self.prev_content else set()
@@ -96,12 +99,12 @@ class UpdateTracker:
         changes.extend([f"Removed: {e}" for e in removed_courses])
         changes.sort()
         if not changes:
-            print("No meaningful changes detected (only order changed).")
+            logger.info("No meaningful changes detected (only order changed).")
             return
 
         # 4. Create diff and send to webhook
         diff = "\n".join(changes)
-        print(diff)
+        logger.debug(diff)
         self._to_webhook(self.conf.webhook_url, diff)
 
         self.prev_content = curr
@@ -129,9 +132,9 @@ class UpdateTracker:
         try:
             resp = requests.post(webhook_url, data=data, files=files)
             resp.raise_for_status()
-            print("Content sent to webhook successfully.")
+            logger.info("Content sent to webhook successfully.")
         except requests.exceptions.RequestException as e:
-            print(f"Error sending content to webhook: {e}")
+            logger.error(f"Error sending content to webhook: {e}")
         finally:
             diff_file.close()
 

@@ -10,6 +10,7 @@ dependencies = [
     "requests",
     "beautifulsoup4",
     "python-dotenv",
+    "loguru>=0.7.3",
 ]
 
 [project.scripts]

@@ -1,5 +1,6 @@
 import time
 
+from loguru import logger
 import requests
 
 from .path import Path
@@ -18,20 +19,22 @@ class Auth:
             )
             resp.raise_for_status()
         except requests.exceptions.RequestException as e:
-            print(f"Error during authentication: {e}")
+            logger.error(f"Error during authentication: {e}")
             return False
 
         time.sleep(1)
         if self.is_logged_in() is False:
-            print("Error: Authentication failed. Please check your credentials.")
+            logger.error("Error: Authentication failed. Please check your credentials.")
             return False
 
         time.sleep(1)
         if self.change_role() is False:
-            print("Error: Authentication succeeded but role change failed. Is the website down?")
+            logger.error(
+                "Error: Authentication succeeded but role change failed. Is the website down?"
+            )
             return False
 
-        print("Authentication successful.")
+        logger.info("Authentication successful.")
         return True
 
     def change_role(self) -> bool:
@@ -39,14 +42,14 @@ class Auth:
             resp = self.session.get(Path.CHANGE_ROLE)
             resp.raise_for_status()
         except requests.exceptions.RequestException as e:
-            print(f"Error changing role: {e}")
+            logger.error(f"Error changing role: {e}")
             return False
 
         if resp.status_code == 200 and resp.url == Path.WELCOME:
-            print("Role changed successfully.")
+            logger.info("Role changed successfully.")
             return True
         else:
-            print("Error: Role change failed.")
+            logger.error("Error: Role change failed.")
             return False
 
     def is_logged_in(self) -> bool:

@@ -1,5 +1,6 @@
 import json
 import os
+import time
 
 from loguru import logger
 
@@ -11,6 +12,7 @@ from fazuh.warlock.siak.path import Path
 class WarBot:
     def __init__(self):
         self.conf = Config()
+        self.interval = 2
 
         if not os.path.exists("courses.json"):
             logger.error("courses.json file not found. Please create it with the required courses.")
@@ -20,16 +22,22 @@ class WarBot:
             self.courses = json.load(f)
 
     def start(self):
-        self.auth = Auth(self.conf.username, self.conf.password)
-        try:
-            if not self.auth.is_logged_in():
-                self.auth.authenticate()
+        while True:
+            self.conf.load()
+            self.auth = Auth(self.conf.username, self.conf.password)
+            try:
+                if not self.auth.is_logged_in():
+                    if not self.auth.authenticate():
+                        logger.error("Authentication failed. Is the server down?")
+                        continue
 
-            self.run()
-        except Exception as e:
-            logger.error(f"An error occurred in WarBot: {e}")
-        finally:
-            self.auth.close()
+                self.run()
+            except Exception as e:
+                logger.error(f"An error occurred in WarBot: {e}")
+            finally:
+                self.auth.close()
+                logger.info(f"Retrying in {self.interval} seconds...")
+                time.sleep(self.interval)
 
     def run(self):
         self.auth.page.goto(Path.COURSE_PLAN_EDIT)
@@ -65,4 +73,4 @@ class WarBot:
 
         # Click the save button
         self.auth.page.click("input[type=submit][value='Simpan IRS']")
-        logger.info("IRS saved.")
+        logger.success("IRS saved.")

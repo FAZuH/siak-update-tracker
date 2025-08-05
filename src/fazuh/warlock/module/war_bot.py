@@ -5,7 +5,7 @@ import time
 from loguru import logger
 
 from fazuh.warlock.config import Config
-from fazuh.warlock.siak.auth import Auth
+from fazuh.warlock.siak.siak import Siak
 from fazuh.warlock.siak.path import Path
 
 
@@ -23,29 +23,29 @@ class WarBot:
 
     def start(self):
         while True:
-            self.conf.load()
-            self.auth = Auth(self.conf.username, self.conf.password)
             try:
-                if not self.auth.is_logged_in():
-                    if not self.auth.authenticate():
-                        logger.error("Authentication failed. Is the server down?")
-                        continue
+                self.conf.load()
+                self.siak = Siak(self.conf.username, self.conf.password)
+
+                if not self.siak.authenticate():
+                    logger.error("Authentication failed. Is the server down?")
+                    continue
 
                 self.run()
             except Exception as e:
                 logger.error(f"An error occurred in WarBot: {e}")
             finally:
-                self.auth.close()
+                self.siak.close()
                 logger.info(f"Retrying in {self.interval} seconds...")
                 time.sleep(self.interval)
 
     def run(self):
-        self.auth.page.goto(Path.COURSE_PLAN_EDIT)
-        if self.auth.page.url != Path.COURSE_PLAN_EDIT:
-            logger.error(f"Expected {Path.COURSE_PLAN_EDIT}. Found {self.auth.page.url} instead.")
+        self.siak.page.goto(Path.COURSE_PLAN_EDIT)
+        if self.siak.page.url != Path.COURSE_PLAN_EDIT:
+            logger.error(f"Expected {Path.COURSE_PLAN_EDIT}. Found {self.siak.page.url} instead.")
             return
 
-        rows = self.auth.page.query_selector_all("tr")
+        rows = self.siak.page.query_selector_all("tr")
         for row in rows:
             course_element = row.query_selector("label")
             prof_element = row.query_selector("td:nth-child(9)")
@@ -72,5 +72,5 @@ class WarBot:
             logger.error(f"Course not found: {key} with prof: {val}")
 
         # Click the save button
-        self.auth.page.click("input[type=submit][value='Simpan IRS']")
+        self.siak.page.click("input[type=submit][value='Simpan IRS']")
         logger.success("IRS saved.")

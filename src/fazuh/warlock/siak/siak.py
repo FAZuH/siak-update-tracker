@@ -10,7 +10,7 @@ from fazuh.warlock.config import Config
 from fazuh.warlock.siak.path import Path
 
 
-class Auth:
+class Siak:
     def __init__(self, username: str, password: str):
         self.username = username
         self.password = password
@@ -21,6 +21,9 @@ class Auth:
 
     def authenticate(self) -> bool:
         try:
+            if self.is_logged_in():
+                return True  # Already logged in, no need to authenticate
+
             self.page.goto(Path.AUTHENTICATION)
             # self.page.wait_for_load_state("networkidle")
 
@@ -39,9 +42,6 @@ class Auth:
             if self.handle_captcha():
                 return self.authenticate()
 
-            if self.is_cookie_exists():
-                logger.success(f"Successful login. Obtained cookie: {self.get_cookie()}")
-
         except Exception as e:
             logger.error(f"An unexpected error occurred during authentication: {e}")
             return False
@@ -55,6 +55,8 @@ class Auth:
                 "Initial authentication failed. Please check your credentials or CAPTCHA solution."
             )
             return False
+        else:
+            logger.success(f"Successful login. Obtained cookie: {self.get_cookie()}")
 
         if self.is_high_load_page():
             logger.error("Server is under high load.")

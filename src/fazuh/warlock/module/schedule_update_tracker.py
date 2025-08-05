@@ -9,7 +9,7 @@ from loguru import logger
 import requests
 
 from fazuh.warlock.config import Config
-from fazuh.warlock.siak.auth import Auth
+from fazuh.warlock.siak.siak import Siak
 
 
 class ScheculeUpdateTracker:
@@ -25,35 +25,35 @@ class ScheculeUpdateTracker:
             self.cache_file.touch()
 
         self.prev_content = self.cache_file.read_text() if self.cache_file.exists() else ""
-        self.auth = Auth(self.conf.username, self.conf.password)
 
     def start(self):
         while True:
             try:
                 self.conf.load()  # Reload config to allow dynamic changes to .env
+                self.siak = Siak(self.conf.username, self.conf.password)
                 self.tracked_page = self.conf.tracked_page
 
-                if not self.auth.is_logged_in():
-                    if not self.auth.authenticate():
-                        logger.error("Authentication failed. Is the server down?")
-                        continue
+                if not self.siak.authenticate():
+                    logger.error("Authentication failed. Is the server down?")
+                    continue
 
                 self.run()
             except Exception as e:
                 logger.error(f"An error occurred in UpdateTracker: {e}")
             finally:
+                self.siak.close()
                 logger.info(f"Waiting for the next check in {self.conf.interval} seconds...")
                 time.sleep(self.conf.interval)
 
     def run(self):
         # 1. GET tracked page
-        self.auth.page.goto(self.tracked_page)
-        if self.auth.page.url != self.tracked_page:
-            logger.error(f"Expected {self.tracked_page}. Found {self.auth.page.url} instead.")
+        self.siak.page.goto(self.tracked_page)
+        if self.siak.page.url != self.tracked_page:
+            logger.error(f"Expected {self.tracked_page}. Found {self.siak.page.url} instead.")
             return
 
         # 2. Parse response
-        soup = BeautifulSoup(self.auth.page.content(), "html.parser")
+        soup = BeautifulSoup(self.siak.page.content(), "html.parser")
 
         courses: list[str] = []
 

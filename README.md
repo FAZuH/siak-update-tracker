@@ -1,6 +1,9 @@
 
 https://github.com/user-attachments/assets/893a3cc9-9bdb-4c9c-a119-7a7929adc7af
 
+> [!warning]
+> War feature have not been tested yet, and may not work as expected. Use at your own risk.
+
 ## Features
 
 - Automatic authentication to university portal

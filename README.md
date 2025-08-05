@@ -2,13 +2,15 @@
 https://github.com/user-attachments/assets/893a3cc9-9bdb-4c9c-a119-7a7929adc7af
 
 > [!warning]
-> War feature have not been tested yet, and may not work as expected. Use at your own risk.
+> "War" module have not been tested yet, and may not work as expected. Use at your own risk.
 
 ## Features
 
 - Automatic authentication to university portal
 - Handle CAPTCHA challenges by notifying and asking the user to solve them
 - Send notifications via Discord webhook
+
+**Modules**:
 - **war**: Bot to search and enroll for courses by course and professor names.
 - **track**: Track changes in course offerings, including professor, schedule, location, and more.
 
@@ -29,7 +31,7 @@ In root of the repository,
 
 In root of the repository, run `uv run warlock war`.
 
-For `war` mode, copy `courses-example.json` to `courses.json` and fill in the required fields. `war` searches for courses and professors by checking keywords that **contains** the course name and professor name. 
+For `war` module, copy `courses-example.json` to `courses.json` and fill in the required fields. `war` searches for courses and professors by checking keywords that **contains** the course name and professor name. 
 
 War bot will not check for exact matches, for example, you can use "CS 101": "John" to find courses that contains "CS 101" e.g., "CS 101: Introduction to Computer Scienc" with professor name that contains "John", e.g., "John Doe".
 

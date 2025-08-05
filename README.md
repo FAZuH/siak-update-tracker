@@ -13,8 +13,9 @@
 
 In root of the repository,
 
-3. Run `uv playwright install`
-4. Copy `.env.example` to `.env` and fill in the required environment variables. Each variable is documented in the `.env-example` file.
+3. Run `uv sync`. This will install all the required project dependencies and set up the project environment.
+4. Run `uv run playwright install-deps && uv run playwright install`. This will install the necessary dependencies for Playwright, which is used for web scraping and automation.
+5. Copy `.env.example` to `.env` and fill in the required environment variables. Each variable is documented in the `.env-example` file.
 
 ## Usage
 
@@ -29,3 +30,7 @@ War bot will not check for exact matches, for example, you can use "CS 101": "Jo
 ### Schedule update tracker
 
 In root of the repository, run `uv run warlock track`.
+
+## License
+
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.

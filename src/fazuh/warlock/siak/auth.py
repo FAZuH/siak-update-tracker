@@ -15,14 +15,14 @@ class Auth:
         self.username = username
         self.password = password
         self.playwright = sync_playwright().start()
-        self.browser: Browser = self.playwright.firefox.launch(headless=False)
+        self.browser: Browser = self.playwright.chromium.launch(headless=False)
         self.page: Page = self.browser.new_page()
         self.config = Config()
 
     def authenticate(self) -> bool:
         try:
             self.page.goto(Path.AUTHENTICATION)
-            self.page.wait_for_load_state("networkidle")
+            # self.page.wait_for_load_state("networkidle")
 
             # Handle pre-login CAPTCHA page
             if self.handle_captcha():
@@ -35,8 +35,12 @@ class Auth:
             self.page.click("input[type=submit]")
             self.page.wait_for_load_state("networkidle")
 
+            # Handle post-login CAPTCHA page (possible)
             if self.handle_captcha():
                 return self.authenticate()
+
+            if self.is_cookie_exists():
+                logger.success(f"Successful login. Obtained cookie: {self.get_cookie()}")
 
         except Exception as e:
             logger.error(f"An unexpected error occurred during authentication: {e}")
@@ -46,10 +50,18 @@ class Auth:
             logger.error("Authentication failed. The requested URL was rejected.")
             return False
 
-        if not self.is_initial_logged_in():
+        if not self.is_cookie_exists():
             logger.error(
                 "Initial authentication failed. Please check your credentials or CAPTCHA solution."
             )
+            return False
+
+        if self.is_high_load_page():
+            logger.error("Server is under high load.")
+            return False
+
+        if self.is_inaccessible_page():
+            logger.error("The page is currently inaccessible.")
             return False
 
         logger.info("Authentication successful.")
@@ -99,10 +111,7 @@ class Auth:
 
         try:
             files = {"file": ("captcha.png", image_data, "image/png")}
-            data = {
-                "username": "Warlock Auth",
-                "content": message
-            }
+            data = {"username": "Warlock Auth", "content": message}
             response = requests.post(
                 self.config.admin_webhook_url, data=data, files=files, timeout=10
             )
@@ -111,9 +120,16 @@ class Auth:
         except requests.RequestException as e:
             logger.error(f"Failed to notify admin via webhook: {e}")
 
-    def is_initial_logged_in(self) -> bool:
+    def is_cookie_exists(self) -> bool:
         """Check if the user is logged in by looking for the session cookie."""
         return "siakng_cc" in [cookie["name"] for cookie in self.page.context.cookies()]
+
+    def get_cookie(self) -> str:
+        cookies = self.page.context.cookies()
+        for cookie in cookies:
+            if cookie["name"] == "siakng_cc":
+                return cookie["value"]
+        return ""
 
     def is_logged_in(self) -> bool:
         """Check if the user is logged in by visiting a known page."""
@@ -132,6 +148,16 @@ class Auth:
     def is_rejected_page(self) -> bool:
         """Check if the current page is a rejected URL page."""
         return "The requested URL was rejected" in self.page.content()
+
+    def is_high_load_page(self) -> bool:
+        """Check if the current page indicates high server load."""
+        # Maaf, server SIAKNG sedang mengalami load tinggi dan belum dapat melayani request Anda saat ini.
+        # Silahkan mencoba beberapa saat lagi.
+        return "Silahkan mencoba beberapa saat lagi." in self.page.content()
+
+    def is_inaccessible_page(self) -> bool:
+        """Check if the current page is inaccessible."""
+        return "Silakan mencoba beberapa saat lagi." in self.page.content()
 
     def close(self):
         self.browser.close()

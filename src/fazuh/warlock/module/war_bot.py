@@ -23,10 +23,9 @@ class WarBot:
 
     def start(self):
         while True:
+            self.conf.load()
             try:
-                self.conf.load()
                 self.siak = Siak(self.conf.username, self.conf.password)
-
                 if not self.siak.authenticate():
                     logger.error("Authentication failed. Is the server down?")
                     continue

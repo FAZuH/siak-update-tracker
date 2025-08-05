@@ -28,8 +28,8 @@ class ScheculeUpdateTracker:
 
     def start(self):
         while True:
+            self.conf.load()  # Reload config to allow dynamic changes to .env
             try:
-                self.conf.load()  # Reload config to allow dynamic changes to .env
                 self.siak = Siak(self.conf.username, self.conf.password)
                 self.tracked_page = self.conf.tracked_url
 
@@ -42,8 +42,8 @@ class ScheculeUpdateTracker:
                 logger.error(f"An error occurred in UpdateTracker: {e}")
             finally:
                 self.siak.close()
-                logger.info(f"Waiting for the next check in {self.conf.TRACKER_INTERVAL} seconds...")
-                time.sleep(self.conf.TRACKER_INTERVAL)
+                logger.info(f"Waiting for the next check in {self.conf.tracker_interval} seconds...")
+                time.sleep(self.conf.tracker_interval)
 
     def run(self):
         # 1. GET tracked page

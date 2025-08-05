@@ -58,7 +58,7 @@ class WarBot:
             prof = await prof_element.inner_text()
 
             for key, val in self.courses.items():
-                if key not in course or val not in prof:
+                if key.lower() not in course.lower() or val.lower() not in prof.lower():
                     continue
 
                 button = await row.query_selector('input[type="radio"]')

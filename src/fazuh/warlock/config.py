@@ -22,12 +22,12 @@ class Config:
             logger.error("USERNAME and PASSWORD environment variables are not set.")
             return
 
-        tracker_webhook = os.getenv("WEBHOOK_URL")
+        tracker_webhook = os.getenv("TRACKER_DISCORD_WEBHOOK_URL")
         if tracker_webhook is None or not self._is_webhook_valid(tracker_webhook):
-            logger.error("Invalid WEBHOOK_URL.")
+            logger.error("Invalid TRACKER_DISCORD_WEBHOOK_URL.")
             return
 
-        tracked_url = os.getenv("TRACKER_DISCORD_WEBHOOK_URL")
+        tracked_url = os.getenv("TRACKED_URL")
         if tracked_url is None:
             logger.error("TRACKED_URL environment variable is not set.")
             return

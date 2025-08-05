@@ -15,9 +15,9 @@ class Siak:
         self.username = username
         self.password = password
         self.playwright = sync_playwright().start()
+        self.config = Config()
         self.browser: Browser = self.playwright.chromium.launch(headless=self.config.headless)
         self.page: Page = self.browser.new_page()
-        self.config = Config()
 
     def authenticate(self) -> bool:
         try:

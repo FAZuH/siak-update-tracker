@@ -27,6 +27,7 @@ class ScheculeUpdateTracker:
         self.prev_content = self.cache_file.read_text() if self.cache_file.exists() else ""
 
     def start(self):
+        self.siak = Siak(self.conf.username, self.conf.password)
         while True:
             self.conf.load()  # Reload config to allow dynamic changes to .env
             try:

@@ -22,6 +22,7 @@ class WarBot:
             self.courses = json.load(f)
 
     def start(self):
+        self.siak = Siak(self.conf.username, self.conf.password)
         while True:
             self.conf.load()
             try:

@@ -21,7 +21,7 @@ In root of the repository,
 
 3. Run `uv sync`. This will install all the required project dependencies and set up the project environment.
 4. Run `uv run playwright install-deps && uv run playwright install`. This will install the necessary dependencies for Playwright, which is used for web scraping and automation.
-5. Copy `.env.example` to `.env` and fill in the required environment variables. Each variable is documented in the `.env-example` file.
+5. Copy `.env-example` file to `.env` and fill in the required environment variables. Each variable is documented in the `.env-example` file.
 
 ## Usage
 

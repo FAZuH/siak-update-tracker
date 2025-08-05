@@ -58,8 +58,8 @@ class Siak:
                 "Initial authentication failed. Please check your credentials or CAPTCHA solution."
             )
             return False
-        else:
-            logger.success(f"Successful login. Obtained cookie: {await self.get_cookie()}")
+        # else:
+        #     logger.success(f"Successful login. Obtained cookie: {await self.get_cookie()}")
 
         if await self.is_high_load_page():
             logger.error("Server is under high load.")

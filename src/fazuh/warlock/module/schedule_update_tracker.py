@@ -109,8 +109,8 @@ class ScheculeUpdateTracker:
         removed_courses = old_courses - new_courses
 
         changes = []
-        changes.extend([f"Added: {e}" for e in added_courses])
-        changes.extend([f"Removed: {e}" for e in removed_courses])
+        changes.extend([f"+ {e}" for e in added_courses])
+        changes.extend([f"- {e}" for e in removed_courses])
         changes.sort()
         if not changes:
             logger.info("No meaningful changes detected (only order changed).")

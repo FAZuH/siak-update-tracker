@@ -7,14 +7,14 @@ def main():
     parser = argparse.ArgumentParser(description="Warlock Bot")
     parser.add_argument(
         "module",
-        choices=["tracker", "war"],
-        help="Module to run (tracker or war).",
+        choices=["track", "war"],
+        help="Module to run (track or war).",
     )
     args = parser.parse_args()
 
     logger.add("log/{time}.log", rotation="1 day")
 
-    if args.module == "tracker":
+    if args.module == "track":
         from fazuh.warlock.module.schedule_update_tracker import ScheculeUpdateTracker
 
         ScheculeUpdateTracker().start()

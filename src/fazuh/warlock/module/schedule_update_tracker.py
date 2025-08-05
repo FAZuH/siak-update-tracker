@@ -1,8 +1,8 @@
+import asyncio
 from datetime import datetime
 import difflib
 import io
 from pathlib import Path
-import time
 
 from bs4 import BeautifulSoup
 from loguru import logger
@@ -26,40 +26,45 @@ class ScheculeUpdateTracker:
 
         self.prev_content = self.cache_file.read_text() if self.cache_file.exists() else ""
 
-    def start(self):
+    async def start(self):
         self.siak = Siak(self.conf.username, self.conf.password)
+        await self.siak.start()
         while True:
             self.conf.load()  # Reload config to allow dynamic changes to .env
             try:
                 self.siak = Siak(self.conf.username, self.conf.password)
+                await self.siak.start()
                 self.tracked_page = self.conf.tracked_url
 
-                if not self.siak.authenticate():
+                if not await self.siak.authenticate():
                     logger.error("Authentication failed. Is the server down?")
                     continue
 
-                self.run()
+                await self.run()
             except Exception as e:
-                logger.error(f"An error occurred in UpdateTracker: {e}")
+                logger.error(f"An error occurred: {e}")
             finally:
-                self.siak.close()
-                logger.info(f"Waiting for the next check in {self.conf.tracker_interval} seconds...")
-                time.sleep(self.conf.tracker_interval)
+                await self.siak.close()
+                logger.info(
+                    f"Waiting for the next check in {self.conf.tracker_interval} seconds..."
+                )
+                await asyncio.sleep(self.conf.tracker_interval)
 
-    def run(self):
+    async def run(self):
         # 1. GET tracked page
-        self.siak.page.goto(self.tracked_page)
+        await self.siak.page.goto(self.tracked_page)
         if self.siak.page.url != self.tracked_page:
             logger.error(f"Expected {self.tracked_page}. Found {self.siak.page.url} instead.")
             return
 
         # 2. Parse response
-        soup = BeautifulSoup(self.siak.page.content(), "html.parser")
+        content = await self.siak.page.content()
+        soup = BeautifulSoup(content, "html.parser")
 
         courses: list[str] = []
 
         # every course starts with <th class="sub ...">
-        for hdr in soup.find_all("th", class_=["sub", "border2", "pad2"]):
+        for hdr in soup.find_all("th", class_=("sub", "border2", "pad2")):
             if hdr.parent is None:
                 continue
             # 2a. course header
@@ -70,7 +75,7 @@ class ScheculeUpdateTracker:
             classes_info = []
             for sibling in hdr.parent.find_next_siblings("tr"):
                 # stop if we hit the next course header
-                if sibling.find("th", class_=["sub", "border2", "pad2"]):  # type: ignore
+                if sibling.find("th", class_=("sub", "border2", "pad2")):
                     break
 
                 # collect the text of every <td> in this <tr>
@@ -114,12 +119,12 @@ class ScheculeUpdateTracker:
         # 4. Create diff and send to webhook
         diff = "\n".join(changes)
         logger.debug(diff)
-        self._send_diff_to_webhook(self.conf.tracker_discord_webhook_url, diff)
+        await self._send_diff_to_webhook(self.conf.tracker_discord_webhook_url, diff)
 
         self.prev_content = curr
         self.cache_file.write_text(curr)
 
-    def _send_diff_to_webhook(self, webhook_url: str, diff: str):
+    async def _send_diff_to_webhook(self, webhook_url: str, diff: str):
         message = "**Jadwal SIAK UI Berubah!**"
         data = {
             "username": "Warlock Tracker",
@@ -140,7 +145,7 @@ class ScheculeUpdateTracker:
             files = {"file": (filename, diff_file, "text/plain")}
 
         try:
-            resp = requests.post(webhook_url, data=data, files=files)
+            resp = await asyncio.to_thread(requests.post, webhook_url, data=data, files=files)
             resp.raise_for_status()
             logger.info("Content sent to webhook successfully.")
         except requests.exceptions.RequestException as e:

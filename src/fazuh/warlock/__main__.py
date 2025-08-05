@@ -1,9 +1,10 @@
 import argparse
+import asyncio
 
 from loguru import logger
 
 
-def main():
+async def main():
     parser = argparse.ArgumentParser(description="Warlock Bot")
     parser.add_argument(
         "module",
@@ -17,13 +18,17 @@ def main():
     if args.module == "track":
         from fazuh.warlock.module.schedule_update_tracker import ScheculeUpdateTracker
 
-        ScheculeUpdateTracker().start()
+        await ScheculeUpdateTracker().start()
 
     elif args.module == "war":
         from fazuh.warlock.module.war_bot import WarBot
 
-        WarBot().start()
+        await WarBot().start()
+
+
+def main_sync():
+    asyncio.run(main())
 
 
 if __name__ == "__main__":
-    main()
+    main_sync()

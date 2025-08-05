@@ -31,7 +31,7 @@ class ScheculeUpdateTracker:
             try:
                 self.conf.load()  # Reload config to allow dynamic changes to .env
                 self.siak = Siak(self.conf.username, self.conf.password)
-                self.tracked_page = self.conf.tracked_page
+                self.tracked_page = self.conf.tracked_url
 
                 if not self.siak.authenticate():
                     logger.error("Authentication failed. Is the server down?")
@@ -42,8 +42,8 @@ class ScheculeUpdateTracker:
                 logger.error(f"An error occurred in UpdateTracker: {e}")
             finally:
                 self.siak.close()
-                logger.info(f"Waiting for the next check in {self.conf.interval} seconds...")
-                time.sleep(self.conf.interval)
+                logger.info(f"Waiting for the next check in {self.conf.TRACKER_INTERVAL} seconds...")
+                time.sleep(self.conf.TRACKER_INTERVAL)
 
     def run(self):
         # 1. GET tracked page
@@ -113,7 +113,7 @@ class ScheculeUpdateTracker:
         # 4. Create diff and send to webhook
         diff = "\n".join(changes)
         logger.debug(diff)
-        self._send_diff_to_webhook(self.conf.webhook_url, diff)
+        self._send_diff_to_webhook(self.conf.tracker_discord_webhook_url, diff)
 
         self.prev_content = curr
         self.cache_file.write_text(curr)

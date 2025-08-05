@@ -22,23 +22,31 @@ class Config:
             logger.error("USERNAME and PASSWORD environment variables are not set.")
             return
 
-        webhook_url = os.getenv("WEBHOOK_URL")
-        if webhook_url is None or not self._is_webhook_valid(webhook_url):
+        tracker_webhook = os.getenv("WEBHOOK_URL")
+        if tracker_webhook is None or not self._is_webhook_valid(tracker_webhook):
             logger.error("Invalid WEBHOOK_URL.")
             return
 
-        admin_webhook_url = os.getenv("ADMIN_WEBHOOK_URL")
-        if admin_webhook_url and not self._is_webhook_valid(admin_webhook_url):
-            logger.error("Invalid ADMIN_WEBHOOK_URL.")
+        tracked_url = os.getenv("TRACKER_DISCORD_WEBHOOK_URL")
+        if tracked_url is None:
+            logger.error("TRACKED_URL environment variable is not set.")
             return
 
+        self.user_id = os.getenv("USER_ID")
+        self.auth_discord_webhook_url = os.getenv("AUTH_DISCORD_WEBHOOK_URL")
+        self.headless = os.getenv("HEADLESS", "true").lower() in ("true", "1", "yes")
+
+        # SiakNG credentials
         self.username = username
         self.password = password
-        self.webhook_url = webhook_url
-        self.admin_webhook_url = admin_webhook_url
-        self.interval = int(os.getenv("INTERVAL", 60))
-        self.admin_user_id = os.getenv("ADMIN_USER_ID")
-        self.tracked_page = os.getenv("TRACKED_PAGE", "")
+
+        # Schedule update tracker
+        self.tracker_interval = int(os.getenv("TRACKER_INTERVAL", 1200))
+        self.tracked_url = tracked_url
+        self.tracker_discord_webhook_url = tracker_webhook
+
+        # War bot
+        self.warbot_interval = int(os.getenv("WARBOT_INTERVAL", 5))
 
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:

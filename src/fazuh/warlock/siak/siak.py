@@ -15,7 +15,7 @@ class Siak:
         self.username = username
         self.password = password
         self.playwright = sync_playwright().start()
-        self.browser: Browser = self.playwright.chromium.launch(headless=False)
+        self.browser: Browser = self.playwright.chromium.launch(headless=self.config.headless)
         self.page: Page = self.browser.new_page()
         self.config = Config()
 
@@ -86,7 +86,7 @@ class Siak:
             base64_data = image_src.split(",", 1)[1]
             image_data = base64.b64decode(base64_data)
 
-            if self.config.admin_webhook_url:
+            if self.config.auth_discord_webhook_url:
                 self._notify_admin_for_captcha(image_data)
 
             captcha_solution = input("Please enter the CAPTCHA code from the image: ")
@@ -104,18 +104,18 @@ class Siak:
 
     def _notify_admin_for_captcha(self, image_data: bytes):
         """Sends the CAPTCHA image to the admin webhook."""
-        if not self.config.admin_webhook_url:
+        if not self.config.auth_discord_webhook_url:
             return
 
         message = "CAPTCHA detected. Please provide the solution."
-        if self.config.admin_user_id:
-            message = f"<@{self.config.admin_user_id}> {message}"
+        if self.config.user_id:
+            message = f"<@{self.config.user_id}> {message}"
 
         try:
             files = {"file": ("captcha.png", image_data, "image/png")}
             data = {"username": "Warlock Auth", "content": message}
             response = requests.post(
-                self.config.admin_webhook_url, data=data, files=files, timeout=10
+                self.config.auth_discord_webhook_url, data=data, files=files, timeout=10
             )
             response.raise_for_status()
             logger.info("Admin notified about CAPTCHA and image sent.")

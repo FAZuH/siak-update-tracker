@@ -27,15 +27,12 @@ class ScheculeUpdateTracker:
         self.prev_content = self.cache_file.read_text() if self.cache_file.exists() else ""
 
     async def start(self):
-        self.siak = Siak(self.conf.username, self.conf.password)
-        await self.siak.start()
         while True:
+            self.siak = Siak(self.conf.username, self.conf.password)
+            await self.siak.start()
             self.conf.load()  # Reload config to allow dynamic changes to .env
             try:
-                self.siak = Siak(self.conf.username, self.conf.password)
-                await self.siak.start()
                 self.tracked_page = self.conf.tracked_url
-
                 if not await self.siak.authenticate():
                     logger.error("Authentication failed. Is the server down?")
                     continue
@@ -43,6 +40,8 @@ class ScheculeUpdateTracker:
                 await self.run()
             except Exception as e:
                 logger.error(f"An error occurred: {e}")
+            else:
+                logger.info("Schedule update tracker completed successfully.")
             finally:
                 await self.siak.close()
                 logger.info(

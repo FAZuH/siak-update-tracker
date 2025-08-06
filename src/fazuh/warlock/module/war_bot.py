@@ -12,7 +12,6 @@ from fazuh.warlock.siak.siak import Siak
 class WarBot:
     def __init__(self):
         self.conf = Config()
-        self.interval = 2
 
         if not os.path.exists("courses.json"):
             logger.error("courses.json file not found. Please create it with the required courses.")
@@ -22,13 +21,11 @@ class WarBot:
             self.courses = json.load(f)
 
     async def start(self):
-        self.siak = Siak(self.conf.username, self.conf.password)
-        await self.siak.start()
         while True:
+            self.siak = Siak(self.conf.username, self.conf.password)
+            await self.siak.start()
             self.conf.load()
             try:
-                self.siak = Siak(self.conf.username, self.conf.password)
-                await self.siak.start()
                 if not await self.siak.authenticate():
                     logger.error("Authentication failed. Is the server down?")
                     continue
@@ -36,17 +33,26 @@ class WarBot:
                 await self.run()
             except Exception as e:
                 logger.error(f"An error occurred: {e}")
+            else:
+                logger.info("WarBot completed successfully.")
+                return
             finally:
                 await self.siak.close()
-                logger.info(f"Retrying in {self.interval} seconds...")
-                await asyncio.sleep(self.interval)
+                logger.info(f"Retrying in {self.conf.warbot_interval} seconds...")
+                await asyncio.sleep(self.conf.warbot_interval)
 
     async def run(self):
-        await self.siak.page.goto(Path.COURSE_PLAN_EDIT)
+        await self.siak.page.goto(Path.COURSE_PLAN_EDIT, wait_until="domcontentloaded")
         if self.siak.page.url != Path.COURSE_PLAN_EDIT:
             logger.error(f"Expected {Path.COURSE_PLAN_EDIT}. Found {self.siak.page.url} instead.")
             return
+        if await self.is_not_registration_period():
+            logger.error(
+                "You cannot fill out the IRS because the academic registration period has not started."
+            )
+            return
 
+        logger.success("Successfully navigated to the Course Plan Edit page.")
         rows = await self.siak.page.query_selector_all("tr")
         for row in rows:
             course_element = await row.query_selector("label")
@@ -73,6 +79,20 @@ class WarBot:
         for key, val in self.courses.items():
             logger.error(f"Course not found: {key} with prof: {val}")
 
-        # Click the save button
-        await self.siak.page.click("input[type=submit][value='Simpan IRS']")
-        logger.success("IRS saved.")
+        # # TODO: Make this toggleable
+        # # Click the save button
+        # await self.siak.page.click("input[type=submit][value='Simpan IRS']")
+        # logger.success("IRS saved.")
+        import time
+
+        # go bottom page
+        await self.siak.page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+        time.sleep(100)
+
+    async def is_not_registration_period(self) -> bool:
+        """Check if the current period is not a registration period."""
+        content = await self.siak.page.content()
+        return (
+            "Anda tidak dapat mengisi IRS karena periode registrasi akademik belum dimulai"
+            in content
+        )

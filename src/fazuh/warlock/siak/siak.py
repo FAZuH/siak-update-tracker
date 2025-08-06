@@ -27,7 +27,7 @@ class Siak:
             if await self.is_logged_in():
                 return True  # Already logged in, no need to authenticate
 
-            await self.page.goto(Path.AUTHENTICATION)
+            await self.page.goto(Path.AUTHENTICATION, wait_until="domcontentloaded")
             # self.page.wait_for_load_state("networkidle")
 
             # Handle pre-login CAPTCHA page
@@ -145,7 +145,7 @@ class Siak:
 
     async def is_logged_in(self) -> bool:
         """Check if the user is logged in by visiting a known page."""
-        await self.page.goto(Path.WELCOME)
+        await self.page.goto(Path.WELCOME, wait_until="domcontentloaded")
         # If we are on the CAPTCHA or Login page, we are not logged in.
         if await self.is_captcha_page():
             return False
@@ -156,7 +156,12 @@ class Siak:
     async def is_captcha_page(self) -> bool:
         """Check if the current page is a CAPTCHA page."""
         content = await self.page.content()
-        return "This question is for testing whether you are a human visitor" in content
+        keywords = [
+            "This question is for testing whether you are a human visitor",
+            "What code is in the image?",
+            "You have entered an invalid answer",
+        ]
+        return any(keyword in content for keyword in keywords)
 
     async def is_rejected_page(self) -> bool:
         """Check if the current page is a rejected URL page."""
@@ -176,7 +181,7 @@ class Siak:
         return "Silakan mencoba beberapa saat lagi." in content
 
     async def close(self):
-        if hasattr(self, 'browser'):
+        if hasattr(self, "browser"):
             await self.browser.close()
-        if hasattr(self, 'playwright'):
+        if hasattr(self, "playwright"):
             await self.playwright.stop()

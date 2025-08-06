@@ -1,4 +1,5 @@
 import asyncio
+import time
 import json
 import os
 
@@ -76,17 +77,17 @@ class WarBot:
                 del self.courses[key]
                 break
 
+        logger.info("Finished selecting courses")
         for key, val in self.courses.items():
             logger.error(f"Course not found: {key} with prof: {val}")
 
-        # # TODO: Make this toggleable
-        # # Click the save button
-        # await self.siak.page.click("input[type=submit][value='Simpan IRS']")
-        # logger.success("IRS saved.")
-        import time
+        if self.conf.warbot_autosubmit:
+            await self.siak.page.click("input[type=submit][value='Simpan IRS']")
+            logger.success("IRS saved.")
+        else:
+            await self.siak.page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
 
-        # go bottom page
-        await self.siak.page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+        logger.info("Done. This program (including the browser) will exit in 100 seconds.")
         time.sleep(100)
 
     async def is_not_registration_period(self) -> bool:

@@ -35,6 +35,7 @@ class Config:
         self.user_id = os.getenv("USER_ID")
         self.auth_discord_webhook_url = os.getenv("AUTH_DISCORD_WEBHOOK_URL")
         self.headless = os.getenv("HEADLESS", "true").lower() in ("true", "1", "yes")
+        self.browser = os.getenv("BROWSER", "chromium").lower()
 
         # SiakNG credentials
         self.username = username
@@ -47,6 +48,7 @@ class Config:
 
         # War bot
         self.warbot_interval = int(os.getenv("WARBOT_INTERVAL", 5))
+        self.warbot_autosubmit = os.getenv("WARBOT_AUTOSUBMIT", "true").lower() in ("true", "1", "yes")
 
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:

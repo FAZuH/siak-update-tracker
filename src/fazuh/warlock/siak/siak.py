@@ -19,7 +19,19 @@ class Siak:
 
     async def start(self):
         self.playwright = await async_playwright().start()
-        self.browser = await self.playwright.chromium.launch(headless=self.config.headless)
+
+        match self.config.browser:
+            case "chromium":
+                browser = self.playwright.chromium
+            case "firefox":
+                browser = self.playwright.firefox
+            case "webkit":
+                browser = self.playwright.webkit
+            case _:
+                logger.error(f"Unsupported browser: {self.config.browser}. Defaulting to Chromium.")
+                browser = self.playwright.chromium
+
+        self.browser = await browser.launch(headless=self.config.headless)
         self.page = await self.browser.new_page()
 
     async def authenticate(self) -> bool:

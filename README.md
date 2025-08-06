@@ -4,7 +4,7 @@ https://github.com/user-attachments/assets/31b86a47-ba8f-466b-8d71-48ab0384e73e
 https://github.com/user-attachments/assets/e1f077d2-494c-43de-b5be-4a1bfbb87a3d
 
 > [!warning]
-> "War" module have not been tested yet, and may not work as expected. Use at your own risk.
+> This script may not work as expected. Use at your own risk.
 
 ## Features
 
@@ -23,19 +23,19 @@ https://github.com/user-attachments/assets/e1f077d2-494c-43de-b5be-4a1bfbb87a3d
 
 In root of the repository,
 
-3. Run `uv sync`. This will install all the required project dependencies and set up the project environment.
-4. Run `uv run playwright install-deps && uv run playwright install`. This will install the necessary dependencies for Playwright, which is used for web scraping and automation.
+3. Run `uv sync`. (This will install all the required project dependencies and set up the project environment)
+4. Run `uv run playwright install-deps && uv run playwright install`. (This will install the necessary dependencies for Playwright, which is used for web scraping and automation)
 5. Copy `.env-example` file to `.env` and fill in the required environment variables. Each variable is documented in the `.env-example` file.
 
 ## Usage
 
 ### War bot
 
-In root of the repository, run `uv run warlock war`.
+Copy `courses-example.json` file to `courses.json` and fill in the required fields.
 
-For `war` module, copy `courses-example.json` to `courses.json` and fill in the required fields. `war` searches for courses and professors by checking keywords that **contains** the course name and professor name. 
+You can run using `uv run warlock war`.
 
-War bot will not check for exact matches, for example, you can use "CS 101": "John" to find courses that contains "CS 101" e.g., "CS 101: Introduction to Computer Scienc" with professor name that contains "John", e.g., "John Doe".
+The War bot does **case-insensitive** searches and does **not require exact matches** for course and professor names. For example, you can use "cs 101": "john" to select course "CS 101: Introduction to Computer Scienc" with professor name "John Doe".
 
 ### Schedule update tracker
 

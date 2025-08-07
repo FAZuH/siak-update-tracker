@@ -41,17 +41,19 @@ class WarBot:
                 await asyncio.sleep(self.conf.warbot_interval)
 
     async def run(self):
+        logger.info("Navigating to the course plan page and waiting for it to load.")
         await self.siak.page.goto(Path.COURSE_PLAN_EDIT, wait_until="domcontentloaded")
         if self.siak.page.url != Path.COURSE_PLAN_EDIT:
             logger.error(f"Expected {Path.COURSE_PLAN_EDIT}. Found {self.siak.page.url} instead.")
             return
-        if await self.is_not_registration_period():
+
+        if await self.is_not_registration_period(await self.siak.content):
             logger.error(
                 "You cannot fill out the IRS because the academic registration period has not started."
             )
             return
 
-        logger.success("Successfully navigated to the Course Plan Edit page.")
+        logger.info("Course plan page loaded successfully. Selecting courses...")
         rows = await self.siak.page.query_selector_all("tr")
         for row in rows:
             course_element = await row.query_selector("label")
@@ -89,9 +91,8 @@ class WarBot:
         logger.info("Script finished. Press Ctrl+C to exit (including the browser).")
         time.sleep(float('inf'))
 
-    async def is_not_registration_period(self) -> bool:
+    async def is_not_registration_period(self, content: str) -> bool:
         """Check if the current period is not a registration period."""
-        content = await self.siak.page.content()
         return (
             "Anda tidak dapat mengisi IRS karena periode registrasi akademik belum dimulai"
             in content

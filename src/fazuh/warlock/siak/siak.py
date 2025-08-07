@@ -3,8 +3,6 @@ import base64
 
 from loguru import logger
 from playwright.async_api import async_playwright
-from playwright.async_api import Browser
-from playwright.async_api import Page
 import requests
 
 from fazuh.warlock.config import Config
@@ -35,58 +33,42 @@ class Siak:
         self.page = await self.browser.new_page()
 
     async def authenticate(self) -> bool:
-        try:
-            if await self.is_logged_in():
-                return True  # Already logged in, no need to authenticate
+        if not self.is_logged_in(await self.content):
+            try:
+                if self.page.url != Path.AUTHENTICATION:
+                    await self.page.goto(Path.AUTHENTICATION)
 
-            await self.page.goto(Path.AUTHENTICATION, wait_until="domcontentloaded")
-            # self.page.wait_for_load_state("networkidle")
+                # Handle pre-login CAPTCHA page
+                if await self.handle_captcha(await self.content):
+                    return await self.authenticate()
 
-            # Handle pre-login CAPTCHA page
-            if await self.handle_captcha():
-                return await self.authenticate()
+                await self.page.wait_for_selector("input[name=u]", state="visible")
+                # Proceed with standard login
+                await self.page.fill("input[name=u]", self.username)
+                await self.page.fill("input[name=p]", self.password)
+                await self.page.click("input[type=submit]")
+                await self.page.wait_for_load_state()
 
-            await self.page.wait_for_selector("input[name=u]", state="visible")
-            # Proceed with standard login
-            await self.page.fill("input[name=u]", self.username)
-            await self.page.fill("input[name=p]", self.password)
-            await self.page.click("input[type=submit]")
-            await self.page.wait_for_load_state("networkidle")
+                # Handle post-login CAPTCHA page (sometimes appears after login)
+                if await self.handle_captcha(await self.content):
+                    return await self.authenticate()
 
-            # Handle post-login CAPTCHA page (possible)
-            if await self.handle_captcha():
-                return await self.authenticate()
+            except Exception as e:
+                logger.error(f"An unexpected error occurred during authentication: {e}")
+                return False
 
-        except Exception as e:
-            logger.error(f"An unexpected error occurred during authentication: {e}")
-            return False
+        # When auth is too fast, the browser might not have the chance to change role
+        await self.page.wait_for_load_state("networkidle")
+        if not self.is_role_selected(await self.content):
+            logger.info("No role selected. Navigating to change role page.")
+            await self.page.goto(Path.CHANGE_ROLE)
 
-        if await self.is_rejected_page():
-            logger.error("Authentication failed. The requested URL was rejected.")
-            return False
-
-        if not await self.is_cookie_exists():
-            logger.error(
-                "Initial authentication failed. Please check your credentials or CAPTCHA solution."
-            )
-            return False
-        # else:
-        #     logger.success(f"Successful login. Obtained cookie: {await self.get_cookie()}")
-
-        if await self.is_high_load_page():
-            logger.error("Server is under high load.")
-            return False
-
-        if await self.is_inaccessible_page():
-            logger.error("The page is currently inaccessible.")
-            return False
-
-        logger.info("Authentication successful.")
+        logger.success("Authentication successful.")
         return True
 
-    async def handle_captcha(self) -> bool:
+    async def handle_captcha(self, content: str) -> bool:
         """Extracts CAPTCHA, notifies admin, and gets solution from CLI."""
-        if not await self.is_captcha_page():
+        if not self.is_captcha_page(content):
             return False
 
         try:
@@ -110,14 +92,36 @@ class Siak:
 
             await self.page.fill("input[name=answer]", captcha_solution)
             await self.page.click("button#jar")
-
-            await self.page.wait_for_load_state("networkidle")
+            await self.page.wait_for_load_state()
 
         except Exception as e:
             logger.error(f"Failed to handle CAPTCHA: {e}")
             raise
 
         return True
+
+    def is_logged_in(self, content: str) -> bool:
+        """Check if the user is logged in."""
+        return "Logout Counter" in content
+
+    def is_role_selected(self, content: str) -> bool:
+        """Check if a role is selected."""
+        return "No role selected" not in content
+
+    def is_captcha_page(self, content: str) -> bool:
+        """Check if the current page is a CAPTCHA page."""
+        keywords = [
+            "This question is for testing whether you are a human visitor",
+            "What code is in the image?",
+            "You have entered an invalid answer",
+        ]
+        return any(keyword in content for keyword in keywords)
+
+    async def close(self):
+        if hasattr(self, "browser"):
+            await self.browser.close()
+        if hasattr(self, "playwright"):
+            await self.playwright.stop()
 
     async def _notify_admin_for_captcha(self, image_data: bytes):
         """Sends the CAPTCHA image to the admin webhook."""
@@ -143,57 +147,7 @@ class Siak:
         except requests.RequestException as e:
             logger.error(f"Failed to notify admin via webhook: {e}")
 
-    async def is_cookie_exists(self) -> bool:
-        """Check if the user is logged in by looking for the session cookie."""
-        cookies = await self.page.context.cookies()
-        return "siakng_cc" in [cookie["name"] for cookie in cookies]
-
-    async def get_cookie(self) -> str:
-        cookies = await self.page.context.cookies()
-        for cookie in cookies:
-            if cookie["name"] == "siakng_cc":
-                return cookie["value"]
-        return ""
-
-    async def is_logged_in(self) -> bool:
-        """Check if the user is logged in by visiting a known page."""
-        await self.page.goto(Path.WELCOME, wait_until="domcontentloaded")
-        # If we are on the CAPTCHA or Login page, we are not logged in.
-        if await self.is_captcha_page():
-            return False
-        if self.page.url == Path.AUTHENTICATION:
-            return False
-        return True
-
-    async def is_captcha_page(self) -> bool:
-        """Check if the current page is a CAPTCHA page."""
-        content = await self.page.content()
-        keywords = [
-            "This question is for testing whether you are a human visitor",
-            "What code is in the image?",
-            "You have entered an invalid answer",
-        ]
-        return any(keyword in content for keyword in keywords)
-
-    async def is_rejected_page(self) -> bool:
-        """Check if the current page is a rejected URL page."""
-        content = await self.page.content()
-        return "The requested URL was rejected" in content
-
-    async def is_high_load_page(self) -> bool:
-        """Check if the current page indicates high server load."""
-        # Maaf, server SIAKNG sedang mengalami load tinggi dan belum dapat melayani request Anda saat ini.
-        # Silahkan mencoba beberapa saat lagi.
-        content = await self.page.content()
-        return "Silahkan mencoba beberapa saat lagi." in content
-
-    async def is_inaccessible_page(self) -> bool:
-        """Check if the current page is inaccessible."""
-        content = await self.page.content()
-        return "Silakan mencoba beberapa saat lagi." in content
-
-    async def close(self):
-        if hasattr(self, "browser"):
-            await self.browser.close()
-        if hasattr(self, "playwright"):
-            await self.playwright.stop()
+    @property
+    async def content(self) -> str:
+        """Get the current page content."""
+        return await self.page.content()

@@ -34,7 +34,7 @@ class ScheculeUpdateTracker:
             self.conf.load()  # Reload config to allow dynamic changes to .env
             try:
                 # Try to use existing session
-                if not await self.siak.is_logged_in():
+                if not self.siak.is_logged_in(await self.siak.content):
                     # Otherwise re-authenticate
                     await self.siak.close()
                     self.siak = Siak(self.conf.username, self.conf.password)

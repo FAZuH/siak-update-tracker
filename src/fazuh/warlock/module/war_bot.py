@@ -22,6 +22,7 @@ class WarBot:
             self.courses = json.load(f)
 
     async def start(self):
+        # Don't reuse sessions. self.is_not_registration_period() will always return True until we re-authenticate.
         while True:
             self.siak = Siak(self.conf.username, self.conf.password)
             await self.siak.start()

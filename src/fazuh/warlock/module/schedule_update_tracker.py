@@ -27,23 +27,28 @@ class ScheculeUpdateTracker:
         self.prev_content = self.cache_file.read_text() if self.cache_file.exists() else ""
 
     async def start(self):
+        self.siak = Siak(self.conf.username, self.conf.password)
+        await self.siak.start()
+        await self.siak.authenticate()
         while True:
-            self.siak = Siak(self.conf.username, self.conf.password)
-            await self.siak.start()
             self.conf.load()  # Reload config to allow dynamic changes to .env
             try:
-                self.tracked_page = self.conf.tracked_url
-                if not await self.siak.authenticate():
-                    logger.error("Authentication failed. Is the server down?")
-                    continue
+                # Try to use existing session
+                if not await self.siak.is_logged_in():
+                    # Otherwise re-authenticate
+                    await self.siak.close()
+                    self.siak = Siak(self.conf.username, self.conf.password)
+                    await self.siak.start()
+                    if not await self.siak.authenticate():
+                        continue
 
                 await self.run()
             except Exception as e:
                 logger.error(f"An error occurred: {e}")
+                await self.siak.close()
             else:
                 logger.info("Schedule update tracker completed successfully.")
             finally:
-                await self.siak.close()
                 logger.info(
                     f"Waiting for the next check in {self.conf.tracker_interval} seconds..."
                 )
@@ -51,9 +56,9 @@ class ScheculeUpdateTracker:
 
     async def run(self):
         # 1. GET tracked page
-        await self.siak.page.goto(self.tracked_page)
-        if self.siak.page.url != self.tracked_page:
-            logger.error(f"Expected {self.tracked_page}. Found {self.siak.page.url} instead.")
+        await self.siak.page.goto(self.conf.tracked_url)
+        if self.siak.page.url != self.conf.tracked_url:
+            logger.error(f"Expected {self.conf.tracked_url}. Found {self.siak.page.url} instead.")
             return
 
         # 2. Parse response

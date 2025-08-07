@@ -35,9 +35,6 @@ class WarBot:
                 await self.run()
             except Exception as e:
                 logger.error(f"An error occurred: {e}")
-            else:
-                logger.info("WarBot completed successfully.")
-                return
             finally:
                 await self.siak.close()
                 logger.info(f"Retrying in {self.conf.warbot_interval} seconds...")
@@ -88,8 +85,9 @@ class WarBot:
         else:
             await self.siak.page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
 
-        logger.info("Done. This program (including the browser) will exit in 100 seconds.")
-        time.sleep(100)
+        logger.success("WarBot completed successfully.")
+        logger.info("Script finished. Press Ctrl+C to exit (including the browser).")
+        time.sleep(float('inf'))
 
     async def is_not_registration_period(self) -> bool:
         """Check if the current period is not a registration period."""
